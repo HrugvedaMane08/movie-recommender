@@ -6,10 +6,12 @@ import gdown
 import os
 
 # Download similarity.pkl automatically if not present
+
+
 if not os.path.exists("similarity.pkl"):
     file_id = "18ZVD3YPHbzZzhKhuOKaDyLfsyCjCP7GO"
     url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, "similarity.pkl", quiet=False)
+    gdown.download(url, "similarity.pkl", quiet=False, fuzzy=True)
 
 
 def fetch_poster(movie_id):
