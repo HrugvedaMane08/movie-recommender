@@ -5,9 +5,8 @@ import requests
 import gdown
 import os
 
-# Download similarity.pkl automatically if not present
 
-
+# Download similarity.pkl if missing
 if not os.path.exists("similarity.pkl"):
     file_id = "18ZVD3YPHbzZzhKhuOKaDyLfsyCjCP7GO"
     url = f"https://drive.google.com/uc?id={file_id}"
@@ -15,66 +14,81 @@ if not os.path.exists("similarity.pkl"):
 
 
 def fetch_poster(movie_id):
-    response = requests.get(
-        'https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US'.format(movie_id)
-    )
-    data = response.json()
-    return "https://image.tmdb.org/t/p/w500" + data['poster_path']
+    try:
+        response = requests.get(
+            f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US"
+        )
+        data = response.json()
+        return "https://image.tmdb.org/t/p/w500" + data['poster_path']
+    except:
+        return "https://via.placeholder.com/500x750?text=No+Image"
 
 
 def recommend(movie):
-    movie_index = movies[movies['title'] == movie].index[0]
-    distances = similarity[movie_index]
-    movies_list = sorted(
-        list(enumerate(distances)),
-        reverse=True,
-        key=lambda x: x[1]
-    )[1:6]
+    try:
+        movie_index = movies[movies['title'] == movie].index[0]
+        distances = similarity[movie_index]
 
-    recommended_movies = []
-    recommended_movies_posters = []
+        movies_list = sorted(
+            list(enumerate(distances)),
+            reverse=True,
+            key=lambda x: x[1]
+        )[1:6]
 
-    for i in movies_list:
-        movie_id = movies.iloc[i[0]].movie_id
-        recommended_movies.append(movies.iloc[i[0]].title)
-        recommended_movies_posters.append(fetch_poster(movie_id))
+        recommended_movies = []
+        recommended_movies_posters = []
 
-    return recommended_movies, recommended_movies_posters
+        for i in movies_list:
+            movie_id = movies.iloc[i[0]].movie_id
+            recommended_movies.append(movies.iloc[i[0]].title)
+            recommended_movies_posters.append(fetch_poster(movie_id))
+
+        return recommended_movies, recommended_movies_posters
+
+    except Exception as e:
+        st.error(f"Error in recommendation system: {e}")
+        return [], []
 
 
-movies_dict = pickle.load(open('movies_dict.pkl', 'rb'))
+movies_dict = pickle.load(open("movies_dict.pkl", "rb"))
 movies = pd.DataFrame(movies_dict)
 
-similarity = pickle.load(open('similarity.pkl', 'rb'))
+try:
+    similarity = pickle.load(open("similarity.pkl", "rb"))
+except Exception as e:
+    st.error(f"Error loading similarity.pkl: {e}")
+    similarity = []
 
-st.title('Movie Recommender System')
+
+st.title("Movie Recommender System")
 
 selected_movie_name = st.selectbox(
-    'Select a movie from the dropdown',
-    movies['title'].values
+    "Select a movie from the dropdown",
+    movies["title"].values
 )
 
-if st.button('Recommend'):
+if st.button("Recommend"):
     names, posters = recommend(selected_movie_name)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    if len(names) >= 5:
+        col1, col2, col3, col4, col5 = st.columns(5)
 
-    with col1:
-        st.text(names[0])
-        st.image(posters[0])
+        with col1:
+            st.text(names[0])
+            st.image(posters[0])
 
-    with col2:
-        st.text(names[1])
-        st.image(posters[1])
+        with col2:
+            st.text(names[1])
+            st.image(posters[1])
 
-    with col3:
-        st.text(names[2])
-        st.image(posters[2])
+        with col3:
+            st.text(names[2])
+            st.image(posters[2])
 
-    with col4:
-        st.text(names[3])
-        st.image(posters[3])
+        with col4:
+            st.text(names[3])
+            st.image(posters[3])
 
-    with col5:
-        st.text(names[4])
-        st.image(posters[4])
+        with col5:
+            st.text(names[4])
+            st.image(posters[4])
