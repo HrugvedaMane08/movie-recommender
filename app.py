@@ -2,15 +2,7 @@ import streamlit as st
 import pickle
 import pandas as pd
 import requests
-import gdown
-import os
-
-
-# Download similarity.pkl if missing
-if not os.path.exists("similarity.pkl"):
-    file_id = "18ZVD3YPHbzZzhKhuOKaDyLfsyCjCP7GO"
-    url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, "similarity.pkl", quiet=False, fuzzy=True)
+import gzip
 
 
 def fetch_poster(movie_id):
@@ -19,14 +11,19 @@ def fetch_poster(movie_id):
             f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US"
         )
         data = response.json()
-        return "https://image.tmdb.org/t/p/w500" + data['poster_path']
+
+        if data.get("poster_path"):
+            return "https://image.tmdb.org/t/p/w500" + data["poster_path"]
+        else:
+            return "https://via.placeholder.com/500x750?text=No+Image"
+
     except:
         return "https://via.placeholder.com/500x750?text=No+Image"
 
 
 def recommend(movie):
     try:
-        movie_index = movies[movies['title'] == movie].index[0]
+        movie_index = movies[movies["title"] == movie].index[0]
         distances = similarity[movie_index]
 
         movies_list = sorted(
@@ -50,14 +47,22 @@ def recommend(movie):
         return [], []
 
 
-movies_dict = pickle.load(open("movies_dict.pkl", "rb"))
-movies = pd.DataFrame(movies_dict)
-
+# Load movies dictionary
 try:
-    similarity = pickle.load(open("similarity.pkl", "rb"))
+    movies_dict = pickle.load(open("movies_dict.pkl", "rb"))
+    movies = pd.DataFrame(movies_dict)
 except Exception as e:
-    st.error(f"Error loading similarity.pkl: {e}")
-    similarity = []
+    st.error(f"Error loading movies_dict.pkl: {e}")
+    st.stop()
+
+
+# Load compressed similarity file
+try:
+    with gzip.open("similarity_compressed.pkl.gz", "rb") as f:
+        similarity = pickle.load(f)
+except Exception as e:
+    st.error(f"Error loading similarity_compressed.pkl.gz: {e}")
+    st.stop()
 
 
 st.title("Movie Recommender System")
