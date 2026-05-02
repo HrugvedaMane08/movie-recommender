@@ -5,6 +5,35 @@ import requests
 import gzip
 
 
+# ✅ Cache movies data
+@st.cache_data
+def load_movies():
+    try:
+        with open("movies_dict.pkl", "rb") as f:
+            movies_dict = pickle.load(f)
+        return pd.DataFrame(movies_dict)
+    except Exception as e:
+        st.error(f"Error loading movies_dict.pkl: {e}")
+        st.stop()
+
+
+# ✅ Cache similarity matrix (VERY IMPORTANT)
+@st.cache_resource
+def load_similarity():
+    try:
+        with gzip.open("similarity_compressed.pkl.gz", "rb") as f:
+            return pickle.load(f)
+    except Exception as e:
+        st.error(f"Error loading similarity_compressed.pkl.gz: {e}")
+        st.stop()
+
+
+# Load cached data
+movies = load_movies()
+similarity = load_similarity()
+
+
+# Fetch poster
 def fetch_poster(movie_id):
     try:
         response = requests.get(
@@ -21,6 +50,7 @@ def fetch_poster(movie_id):
         return "https://via.placeholder.com/500x750?text=No+Image"
 
 
+# Recommendation function
 def recommend(movie):
     try:
         movie_index = movies[movies["title"] == movie].index[0]
@@ -47,24 +77,7 @@ def recommend(movie):
         return [], []
 
 
-# Load movies dictionary
-try:
-    movies_dict = pickle.load(open("movies_dict.pkl", "rb"))
-    movies = pd.DataFrame(movies_dict)
-except Exception as e:
-    st.error(f"Error loading movies_dict.pkl: {e}")
-    st.stop()
-
-
-# Load compressed similarity file
-try:
-    with gzip.open("similarity_compressed.pkl.gz", "rb") as f:
-        similarity = pickle.load(f)
-except Exception as e:
-    st.error(f"Error loading similarity_compressed.pkl.gz: {e}")
-    st.stop()
-
-
+# UI
 st.title("Movie Recommender System")
 
 selected_movie_name = st.selectbox(
